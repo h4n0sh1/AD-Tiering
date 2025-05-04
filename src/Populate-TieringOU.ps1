@@ -37,3 +37,4 @@ function Search-ADTreeFromCSV([System.Array]$csv,
 }
 
 Search-ADTreeFromCSV $AD_Tree ${function:\Search-XMLNodeByClass}
+Get-TieringMapCSV "..\data\Tiering-Map.csv"

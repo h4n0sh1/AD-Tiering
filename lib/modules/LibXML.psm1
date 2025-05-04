@@ -6,10 +6,28 @@
 #>
 
 $BASE_DN = (Get-ADDomain).DistinguishedName
-# Key = Original OU Ldap PATH ; Value = Array of new OUs Ldap paths
+# Key = Original OU Ldap PATH :: Object Class ; Value = Array of new OUs Ldap paths
 $TIERING_MAP = @{}
 
-# Get XPath from $node with regards to xml structure
+# Returns Tiering_Map in CSV format 
+function Get-TieringMapCSV([String] $csv_path,
+                           [Hashtable] $tiering_map=$TIERING_MAP              
+                          ){
+    $csv = @()
+    $tiering_map.GetEnumerator() |%{
+        $OLD_OU_PATH = ($_.Key -split "::")[0]
+        $OBJECT_CLASS = ($_.Key -split "::")[1]
+        $NEW_OUS_PATHS = $_.Value
+            $csv += [PSCustomObject][ordered]@{
+            OLD_OU_PATH = $OLD_OU_PATH
+            OBJECT_CLASS= $OBJECT_CLASS
+            NEW_OU_PATHS = '"{0}"' -f ($NEW_OUS_PATHS -join '","')
+        }
+    }
+    $csv | Sort-Object -Property "OLD_OU_PATH" | Export-Csv -Path "$csv_path" -NoTypeInformation -Encoding UTF8 -Force
+}
+
+# Get XPath from $node with regards to xml structure (xmlns inc.)
 function Get-XPathFromXMLNode([System.Xml.XmlNode]$node,
                               [Int] $first_trigger=1,
                               [String]$XPath = "/"
@@ -92,7 +110,6 @@ function New-XMLNodes([String]$old_ou_ldap_path,
 
         # Strips OU LDAP Path from DC
         if((Get-LdapPathFromXML $tiering_ou_xml_node $rootNodeName) -match "(.*?),DC=.*"){
-            
             $tiering_ou_ldap_path = $Matches[1]
             $Matches.Clear()
             
@@ -124,10 +141,10 @@ function New-XMLNodes([String]$old_ou_ldap_path,
 
             # Adds current sub_ou path to dictionary to avoid looping for already created paths in Search-XMLNodeByClass
             # A key = 'ou_path' can match to multiple new entries if it contains : different object type [OR] object class exists in different tiers
-            if($TIERING_MAP.ContainsKey($old_sub_ou_ldap_path)){
-                $TIERING_MAP[$old_sub_ou_ldap_path] += $new_sub_ou_ldap_path
+            if($TIERING_MAP.ContainsKey($old_sub_ou_ldap_path+"::$object_class")){
+                $TIERING_MAP[$old_sub_ou_ldap_path+"::$object_class"] += $new_sub_ou_ldap_path
             }else{
-                $TIERING_MAP.Add($old_sub_ou_ldap_path,@($new_sub_ou_ldap_path)) 
+                $TIERING_MAP.Add($old_sub_ou_ldap_path+"::$object_class",@($new_sub_ou_ldap_path)) 
             } 
         }
     }
@@ -146,7 +163,7 @@ function Search-XMLNodeByClass([String]$object_ldap_path,
         
         $tiering_ou_xml_nodes = Select-Xml "//*[@Class='$($object_class)']" $xml_path
 
-        if(!$TIERING_MAP.ContainsKey($old_ou_ldap_path)){
+        if(!$TIERING_MAP.ContainsKey($old_ou_ldap_path+"::$object_class")){
             $tiering_ou_xml_nodes | %{
                 Invoke-Command $function -ArgumentList $old_ou_ldap_path, $object_class, $_.Node, $xml
             }     
