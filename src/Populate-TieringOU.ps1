@@ -23,12 +23,13 @@ $NEW_XML_PATH = "..\lib\templates\Tiering-OU-populated.xml"
 function Search-ADTreeFromCSV([System.Array]$csv,
                               [ScriptBlock]$function){
     Copy-Item $XML_PATH -Destination $NEW_XML_PATH -Force
+    [xml]$xml = Get-Content $NEW_XML_PATH
     $csv | %{
         if($ANALYSED_OBJECT_TYPES -contains $_.ObjectClass){
             if($_.DistinguishedName -match "(.*?),DC=.*"){
                 $object_path = $Matches[1]
                 $Matches.Clear()
-                Invoke-Command $function -ArgumentList ($object_path,$_.ObjectClass,$NEW_XML_PATH,${function:\New-XMLNodes}) 
+                Invoke-Command $function -ArgumentList ($object_path,$_.ObjectClass,$xml,${function:\New-XMLNodes}) 
                 
             }
         }

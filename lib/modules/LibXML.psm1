@@ -9,17 +9,28 @@ $BASE_DN = (Get-ADDomain).DistinguishedName
 # Key = Original OU_PATH ; Value = New XML Node paths
 $TIERING_MAP = @{}
 
-function Get-XPath([System.Xml.XmlNode]$node,
-                   [String]$XPath = "/"
-                   ){
+function Get-XPathFromXMLNode([System.Xml.XmlNode]$node,
+                              [String]$XPath = "/"
+                              ){
     if( $node.ParentNode -ne $null ){
         if($node.LocalName -eq 'OU'){
-            $XPath = (Get-XPath $node.ParentNode) + "OU[@NAME='" + $node.Name + "']/"
+            $XPath = (Get-XPathFromXMLNode $node.ParentNode) + "OU[@NAME='" + $node.Name + "']/"
         }else{
-            $XPath = (Get-XPath $node.ParentNode) + $node.Name + "/"
+            $XPath = (Get-XPathFromXMLNode $node.ParentNode) + $node.Name + "/"
         }    
     }
     return $XPath 
+}
+
+function Get-XPathFromLDAP([String]$ldap_path,
+                           [String]$rootNodeName,
+                           [String]$XPath = "/$rootNodeName/"
+                           ){
+    $ldap_array = $ldap_path -split ","
+    $ldap_array[-1..-($ldap_array.Length)] | %{
+        $XPath += "OU[@NAME='" + (($_ -split "=")[1]) + "']/"
+    }
+    return $XPath.Substring(0,$XPath.Length-1)
 }
 
 # Get LDAP path of an object from it's associated XML $node
@@ -60,53 +71,77 @@ function Search-XmlSiblingNodes([System.Xml.XmlLinkedNode]$node,
         }
 }
 
-# Insert OU located in $ou_path (LDAP path relative to TLD // stripped from DC) in XML file, at $node 
-function New-XMLNodes([String]$ou_path,
-                     [System.Xml.XmlLinkedNode]$node,
-                     [String]$xml_path
-                     ){
+# Insert OU located in $old_ldap_path (relative to TLD) into XML file, at $node 
+function New-XMLNodes([String]$old_ou_ldap_path,
+                      [String] $object_class,
+                      [System.Xml.XmlLinkedNode]$tiering_ou_xml_node,
+                      [xml]$xml
+                      ){
+    $rootNodeName = $xml.FirstChild.NextSibling.LocalName
+    
     #Loop through OUs in reverse order (from parent to child)
-    ($ou_path -split ",")[-1..-($ou_array.Length)] | %{
-        $ou_name = ($_ -split "=")[1]
-        $XPath = (Get-XPath $node)
-        $XPath = $XPath.Substring(0,$XPath.Length-1)
+    $old_ou_array = ($old_ou_ldap_path -split ",")
+    $previous_ou_ldap_path = ""
+    $old_sub_ou_ldap_path = ""
+    $old_ou_array[-1..-($old_ou_array.Length)] | %{
+        $ou_name = ($_ -split "=")[1] 
 
-        [xml]$xml = Get-Content $xml_path
-        $node_to_insert_from = $xml.SelectSingleNode($XPath)
-        $new_node = $xml.CreateElement("OU")
-        $new_node.setAttribute("NAME",$ou_name) 
-        $node_to_insert_from.AppendChild($new_node)
-        $xml.save("Z:\AD-Tiering\lib\templates\Tiering-OU-populated.xml") 
+        if((Get-LdapPathFromXML $tiering_ou_xml_node $rootNodeName) -match "(.*?),DC=.*"){
+            
+            $tiering_ou_ldap_path = $Matches[1]
+            $Matches.Clear()
+            
+            if($previous_ou_ldap_path.Length -eq 0){
+                $old_sub_ou_ldap_path = "OU=" + $ou_name 
+                $insert_node_xPath = Get-XPathFromXMLNode $tiering_ou_xml_node
+                $insert_node_xPath = $insert_node_xPath.Substring(0,$insert_node_xPath.Length-1)
+                Write-Host "Importing OU: $insert_node_xPath"
+            }else{
+                $old_sub_ou_ldap_path = "OU=" + $ou_name + "," + $old_sub_ou_ldap_path
+                $insert_node_xPath = Get-XPathFromLDAP $previous_ou_ldap_path $rootNodeName
+                Write-Host "Importing OU: $insert_node_xPath"
+            }    
 
-        $node_path = Get-LdapPathFromXML $node "STRUCTURE"
-        
-        if($TIERING_MAP.ContainsKey($ou_path)){
-            $TIERING_MAP[$ou_path] += $node_path
-        }else{
-            $TIERING_MAP.Add($ou_path,@($node_path)) 
-        }  
-        
+            $new_sub_ou_ldap_path = $old_sub_ou_ldap_path + "," + $tiering_ou_ldap_path
+            $new_sub_ou_xPath = Get-XPathFromLDAP $new_sub_ou_ldap_path $rootNodeName
+            if($xml.SelectSingleNode($new_sub_ou_xPath) -eq $null){
+                $insert_from_xml_node = $xml.SelectSingleNode($insert_node_XPath)
+                $new_xml_node = $xml.CreateElement("OU")
+                $new_xml_node.setAttribute("NAME",$ou_name) | Out-Null
+                $new_xml_node.setAttribute("Class",$object_class) | Out-Null
+                $insert_from_xml_node.AppendChild($new_xml_node) | Out-Null
+                $xml.save("Z:\AD-Tiering\lib\templates\Tiering-OU-populated.xml")
+            }
+
+            $previous_ou_ldap_path = $new_sub_ou_ldap_path
+
+            if($TIERING_MAP.ContainsKey($old_sub_ou_ldap_path)){
+                $TIERING_MAP[$old_sub_ou_ldap_path] += $new_sub_ou_ldap_path
+            }else{
+                $TIERING_MAP.Add($old_sub_ou_ldap_path,@($new_sub_ou_ldap_path)) 
+            } 
+        }
     }
 }
 
 # Search all nodes where attribute "Class" matches the object class. Processing each node with $function
-function Search-XMLNodeByClass([String]$object_path,
+function Search-XMLNodeByClass([String]$object_ldap_path,
                                [String]$object_class,
-                               [String]$xml_path,
+                               [xml]$xml,
                                [ScriptBlock]$function
                                ){
     #Strips LDAP path from CN, keep only OU paths
-    if($object_path -match "CN=[^,]*,(OU=.*)"){
-        $ou_path = $Matches[1]
+    if($object_ldap_path -match "CN=[^,]*,(OU=.*)"){
+        $old_ou_ldap_path = $Matches[1]
         $Matches.Clear()
         
-        $nodes = Select-Xml "//*[@Class='$($object_class)']" $xml_path
-        $nodes | %{
-            if(!$TIERING_MAP.ContainsKey($ou_path)){
-                Invoke-Command $function -ArgumentList $ou_path, $_.Node, $xml_path
+        $tiering_ou_xml_nodes = Select-Xml "//*[@Class='$($object_class)']" $xml_path
+
+        if(!$TIERING_MAP.ContainsKey($old_ou_ldap_path)){
+            $tiering_ou_xml_nodes | %{
+                #Write-Host "Checking tiering node - $($_.Node.Name)"
+                Invoke-Command $function -ArgumentList $old_ou_ldap_path, $object_class, $_.Node, $xml
             }     
         } 
     }                            
-
-
 }
