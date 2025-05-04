@@ -6,18 +6,23 @@
 #>
 
 $BASE_DN = (Get-ADDomain).DistinguishedName
-# Key = Original OU_PATH ; Value = New XML Node paths
+# Key = Original OU Ldap PATH ; Value = Array of new OUs Ldap paths
 $TIERING_MAP = @{}
 
+# Get XPath from $node with regards to xml structure
 function Get-XPathFromXMLNode([System.Xml.XmlNode]$node,
+                              [Int] $first_trigger=1,
                               [String]$XPath = "/"
                               ){
     if( $node.ParentNode -ne $null ){
         if($node.LocalName -eq 'OU'){
-            $XPath = (Get-XPathFromXMLNode $node.ParentNode) + "OU[@NAME='" + $node.Name + "']/"
+            $XPath = (Get-XPathFromXMLNode $node.ParentNode 0) + "OU[@NAME='" + $node.Name + "']/"
         }else{
-            $XPath = (Get-XPathFromXMLNode $node.ParentNode) + $node.Name + "/"
+            $XPath = (Get-XPathFromXMLNode $node.ParentNode 0) + $node.Name + "/"
         }    
+    }
+    if($first_trigger){
+        $XPath = $XPath.Substring(0,$XPath.Length-1)
     }
     return $XPath 
 }
@@ -52,7 +57,6 @@ function Search-XmlAllNodes([System.Xml.XmlLinkedNode]$node,
                             [ScriptBlock]$function
                             ){
     while($node -ne $null){
-        #Node logic - How to handle each OU
         Invoke-Command $function -ArgumentList $node 
         if($node.hasChildNodes){
             Search-XmlAllNodes $node.FirstChild $function
@@ -79,22 +83,23 @@ function New-XMLNodes([String]$old_ou_ldap_path,
                       ){
     $rootNodeName = $xml.FirstChild.NextSibling.LocalName
     
-    #Loop through OUs in reverse order (from parent to child)
+    # Loop through OUs in reverse order (from parent to child)
     $old_ou_array = ($old_ou_ldap_path -split ",")
     $previous_ou_ldap_path = ""
     $old_sub_ou_ldap_path = ""
     $old_ou_array[-1..-($old_ou_array.Length)] | %{
         $ou_name = ($_ -split "=")[1] 
 
+        # Strips OU LDAP Path from DC
         if((Get-LdapPathFromXML $tiering_ou_xml_node $rootNodeName) -match "(.*?),DC=.*"){
             
             $tiering_ou_ldap_path = $Matches[1]
             $Matches.Clear()
             
+            # Find XPath of parent node to insert from
             if($previous_ou_ldap_path.Length -eq 0){
                 $old_sub_ou_ldap_path = "OU=" + $ou_name 
                 $insert_node_xPath = Get-XPathFromXMLNode $tiering_ou_xml_node
-                $insert_node_xPath = $insert_node_xPath.Substring(0,$insert_node_xPath.Length-1)
                 Write-Host "Importing OU: $insert_node_xPath"
             }else{
                 $old_sub_ou_ldap_path = "OU=" + $ou_name + "," + $old_sub_ou_ldap_path
@@ -102,6 +107,7 @@ function New-XMLNodes([String]$old_ou_ldap_path,
                 Write-Host "Importing OU: $insert_node_xPath"
             }    
 
+            # Checks if new node to insert is already present, else append it to parent node
             $new_sub_ou_ldap_path = $old_sub_ou_ldap_path + "," + $tiering_ou_ldap_path
             $new_sub_ou_xPath = Get-XPathFromLDAP $new_sub_ou_ldap_path $rootNodeName
             if($xml.SelectSingleNode($new_sub_ou_xPath) -eq $null){
@@ -113,8 +119,11 @@ function New-XMLNodes([String]$old_ou_ldap_path,
                 $xml.save("Z:\AD-Tiering\lib\templates\Tiering-OU-populated.xml")
             }
 
+            # Updates ref. to current sub_ou path for next iteration
             $previous_ou_ldap_path = $new_sub_ou_ldap_path
 
+            # Adds current sub_ou path to dictionary to avoid looping for already created paths in Search-XMLNodeByClass
+            # A key = 'ou_path' can match to multiple new entries if it contains : different object type [OR] object class exists in different tiers
             if($TIERING_MAP.ContainsKey($old_sub_ou_ldap_path)){
                 $TIERING_MAP[$old_sub_ou_ldap_path] += $new_sub_ou_ldap_path
             }else{
@@ -130,7 +139,7 @@ function Search-XMLNodeByClass([String]$object_ldap_path,
                                [xml]$xml,
                                [ScriptBlock]$function
                                ){
-    #Strips LDAP path from CN, keep only OU paths
+    # Strips LDAP path from CN, keep only OU paths
     if($object_ldap_path -match "CN=[^,]*,(OU=.*)"){
         $old_ou_ldap_path = $Matches[1]
         $Matches.Clear()
@@ -139,7 +148,6 @@ function Search-XMLNodeByClass([String]$object_ldap_path,
 
         if(!$TIERING_MAP.ContainsKey($old_ou_ldap_path)){
             $tiering_ou_xml_nodes | %{
-                #Write-Host "Checking tiering node - $($_.Node.Name)"
                 Invoke-Command $function -ArgumentList $old_ou_ldap_path, $object_class, $_.Node, $xml
             }     
         } 
