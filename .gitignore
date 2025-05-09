@@ -1,4 +1,4 @@
-*.xml
-*.csv
+*.xml*
+*.csv*
 *CONFIDENTIAL*
 *draft*
