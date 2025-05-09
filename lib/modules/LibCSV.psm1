@@ -5,7 +5,7 @@
 # Created: 05/09/2025
 #>
 
-function Load-MapFromCsv([String]$csv_path = $TieringMap_Path,
+function Import-MapFromCsv([String]$csv_path = $TieringMap_Path,
                          [Int]$key_index = 0,
                          [Int]$value_index = 2
                         ){

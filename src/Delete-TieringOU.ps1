@@ -8,7 +8,7 @@
 [CmdletBinding()]
 param(
      [Parameter(Mandatory=$False)]
-     [String]$XML_PATH = "..\lib\templates\Tiering-OU-populated.xml"
+     [String]$XML_PATH = "..\data\results\Tiering-OU-populated.xml"
 
 )
 

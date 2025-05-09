@@ -8,7 +8,7 @@
 $BASE_DN = (Get-ADDomain).DistinguishedName
 # Key = Original OU Ldap PATH :: Object Class , Value = Array of new OUs Ldap paths
 $TIERING_MAP = @{}
-$TIERING_OUTPUT_XML_PATH = "..\data\results\Tiering-OU-populated.xml"
+#$TIERING_OUTPUT_XML_PATH = "..\data\results\Tiering-OU-populated.xml"
 
 # Returns Tiering_Map in CSV format 
 function Get-TieringMapCSV([String]$csv_path,
@@ -98,7 +98,8 @@ function Search-XmlSiblingNodes([System.Xml.XmlLinkedNode]$node,
 function New-XMLNodes([String]$old_ou_ldap_path,
                       [String]$object_class,
                       [System.Xml.XmlLinkedNode]$tiering_ou_xml_node,
-                      [xml]$xml
+                      [xml]$xml,
+                      [String]$xml_path
                       ){
     $rootNodeName = $xml.FirstChild.NextSibling.LocalName
 
@@ -134,7 +135,7 @@ function New-XMLNodes([String]$old_ou_ldap_path,
                 $new_xml_node.setAttribute("NAME",$ou_name) | Out-Null
                 $new_xml_node.setAttribute("Class",$object_class) | Out-Null
                 $insert_from_xml_node.AppendChild($new_xml_node) | Out-Null
-                $xml.save($TIERING_OUTPUT_XML_PATH)
+                $xml.save($xml_path)
             }
 
             # Updates ref. to current sub_ou path for next iteration
@@ -155,6 +156,8 @@ function New-XMLNodes([String]$old_ou_ldap_path,
 function Search-XMLNodeByClass([String]$object_ldap_path,
                                [String]$object_class,
                                [xml]$xml,
+                               [String]$xml_template_path,
+                               [String]$xml_output_path,
                                [ScriptBlock]$function
                                ){
     # Strips LDAP path from CN, keep only OU paths
@@ -162,17 +165,17 @@ function Search-XMLNodeByClass([String]$object_ldap_path,
         $old_ou_ldap_path = $Matches[1]
         $Matches.Clear()
         
-        $tiering_ou_xml_nodes = Select-Xml "//*[@Class='$($object_class)']" $xml_path
+        $tiering_ou_xml_nodes = Select-Xml "//*[@Class='$($object_class)']" $xml_template_path
 
         if(!$TIERING_MAP.ContainsKey($old_ou_ldap_path+"::$object_class")){
             $tiering_ou_xml_nodes | %{
-                Invoke-Command $function -ArgumentList $old_ou_ldap_path, $object_class, $_.Node, $xml
+                Invoke-Command $function -ArgumentList $old_ou_ldap_path, $object_class, $_.Node, $xml, $xml_output_path
             }     
         } 
     }                            
 }
 
-# Extract all unique classes from XML file
+# Adds XML node class attribute to the global class_map dict.
 function Get-ClassFromNode([System.Xml.XmlNode]$node
                            ){
     $class = $node.Class
