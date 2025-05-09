@@ -19,14 +19,14 @@ $ROOT_NODE = $Tiering_OU.STRUCTURE.FirstChild
 $BASE_DN = (Get-ADDomain).DistinguishedName
 
 function Remove-ProtectionFromADTieringOU([System.Xml.XmlLinkedNode]$node){
-    $ou_path = Get-LdapPathFromXML $node "STRUCTURE"
+    $ou_path = Get-LdapPathFromXMLNode $node "STRUCTURE"
     $parent_path = ($ou_path -split ',',2)[1]
     Get-ADOrganizationalUnit -Identity "$ou_path" | `
       Set-ADObject -ProtectedFromAccidentalDeletion:$false -PassThru
 }
 
 function Delete-ADTieringOU([System.Xml.XmlLinkedNode]$node){
-    $ou_path = Get-LdapPathFromXML $node "STRUCTURE"
+    $ou_path = Get-LdapPathFromXMLNode $node "STRUCTURE"
     $parent_path = ($ou_path -split ',',2)[1]
     Remove-ADOrganizationalUnit -Identity "$ou_path" -Recursive -Confirm:$false
 }

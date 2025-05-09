@@ -18,7 +18,7 @@ Import-Module "..\lib\modules\LibXML.psm1" -Force
 $ROOT_NODE = $Tiering_OU.STRUCTURE.FirstChild
 
 function New-ADTieringOU([System.Xml.XmlLinkedNode]$node){
-    $ou_path = Get-LdapPathFromXML $node "STRUCTURE"
+    $ou_path = Get-LdapPathFromXMLNode $node "STRUCTURE"
     $parent_path = ($ou_path -split ',',2)[1]
     Write-Host $ou_path
     New-ADOrganizationalUnit -Name $node.name -Path $parent_path

@@ -58,9 +58,9 @@ function Get-XPathFromLDAP([String]$ldap_path,
 }
 
 # Get LDAP path of an object from it's associated XML $node
-function Get-LdapPathFromXML([System.Xml.XmlLinkedNode]$node,
-                             [String]$rootNodeName
-                             ){  
+function Get-LdapPathFromXMLNode([System.Xml.XmlLinkedNode]$node,
+                                 [String]$rootNodeName
+                                ){  
     $XMLNodePath = ""
     while($node.LocalName -ne $rootNodeName)
     {
@@ -111,7 +111,7 @@ function New-XMLNodes([String]$old_ou_ldap_path,
         $ou_name = ($_ -split "=")[1] 
 
         # Strips OU LDAP Path from DC
-        if((Get-LdapPathFromXML $tiering_ou_xml_node $rootNodeName) -match "(.*?),DC=.*"){
+        if((Get-LdapPathFromXMLNode $tiering_ou_xml_node $rootNodeName) -match "(.*?),DC=.*"){
             $tiering_ou_ldap_path = $Matches[1]
             $Matches.Clear()
             
