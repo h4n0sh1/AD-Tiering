@@ -34,8 +34,7 @@ function New-ADOrganizationalUnitRecursive([String]$OU_PATH,
             }else{
                 Write-Host "Error in Domain Name."
             }
-         }  
-       
+         }     
         return    
     }
 }

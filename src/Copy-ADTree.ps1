@@ -14,6 +14,7 @@ param(
 Import-Module "..\lib\modules\LibAD.psm1" -Force
 
 $AD_Tree = Import-Csv -Path $AD_TREE_PATH
+$BASE_DN = (Get-ADDomain).DistinguishedName
 $CLASSES_TO_REPLICATE = @("organizationalUnit",
                           "user",
                           "group",
@@ -25,16 +26,16 @@ function Search-ADTreeFromCSV([System.Array]$csv
 
     $csv | %{
         if(
-           $CLASSES_TO_REPLICATE.Keys -contains $_.ObjectClass -and 
+           $CLASSES_TO_REPLICATE -contains $_.ObjectClass -and 
            $_.DistinguishedName -match "(.*?),DC=.*"
            ){
-            $object_path = $Matches[1]
+            $new_object_path = $Matches[1] + ",$BASE_DN"
             $Matches.Clear()
             switch($_.ObjectClass)
             {
-                "organizationalUnit"
+                organizationalUnit
                 { 
-                  
+                  New-ADOrganizationalUnitRecursive $new_object_path
                 }
                 "user"
                 {
@@ -55,4 +56,4 @@ function Search-ADTreeFromCSV([System.Array]$csv
     }
 }
 
-New-ADOrganizationalUnitRecursive "OU=GROUPEX,OU=AVD,DC=h4n0sh1,DC=org"
+Search-ADTreeFromCSV $AD_TREE
