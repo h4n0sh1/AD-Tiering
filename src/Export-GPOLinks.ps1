@@ -12,7 +12,7 @@ try{
     $gpos | Export-Csv -Path $EXPORT_PATH -NoTypeInformation
     Write-Host -BackgroundColor Green -ForegroundColor White "Successfully exported GPO Links !"
 }catch{
-    Write-Host -BackgroundColor Red -ForegroundColor Black "Failed in exporting GPO Links ..."
+    Write-Host -BackgroundColor Red -ForegroundColor Black "Failed to export GPO Links ..."
     $_.ScriptStackTrace
     $_.Exception
     $_.ErrorDetails
