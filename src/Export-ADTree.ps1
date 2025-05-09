@@ -5,8 +5,10 @@
 # Created: 04/24/2025
 #>
 
+$EXPORT_PATH = "$PSScriptRoot\..\data\exports\AD-Tree.csv"
 #List of AD tree containers and OUs  
 $ad_tree = @()
+
 
 #Simple tree search - excludes other 
 Get-ADObject -LDAPFilter '((objectclass=*))' -Properties CanonicalName | %{
@@ -28,4 +30,4 @@ Get-ADObject -LDAPFilter '((objectclass=*))' -Properties CanonicalName | %{
 }
 
 #Export AD tree in the same order it appears on dsa.msc
-$ad_tree | Sort-Object -Property "cn_identifier" | Export-Csv -Path "..\data\AD-Tree.csv" -NoTypeInformation -Encoding UTF8 -Force
+$ad_tree | Sort-Object -Property "cn_identifier" | Export-Csv -Path $EXPORT_PATH -NoTypeInformation -Encoding UTF8 -Force

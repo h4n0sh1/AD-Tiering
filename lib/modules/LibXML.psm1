@@ -6,22 +6,23 @@
 #>
 
 $BASE_DN = (Get-ADDomain).DistinguishedName
-# Key = Original OU Ldap PATH :: Object Class ; Value = Array of new OUs Ldap paths
+# Key = Original OU Ldap PATH :: Object Class , Value = Array of new OUs Ldap paths
 $TIERING_MAP = @{}
+$TIERING_OUTPUT_XML_PATH = "..\data\results\Tiering-OU-populated.xml"
 
 # Returns Tiering_Map in CSV format 
-function Get-TieringMapCSV([String] $csv_path,
-                           [Hashtable] $tiering_map=$TIERING_MAP              
+function Get-TieringMapCSV([String]$csv_path,
+                           [Hashtable]$tiering_map=$TIERING_MAP              
                           ){
     $csv = @()
     $tiering_map.GetEnumerator() |%{
         $OLD_OU_PATH = ($_.Key -split "::")[0]
         $OBJECT_CLASS = ($_.Key -split "::")[1]
         $NEW_OUS_PATHS = $_.Value
-            $csv += [PSCustomObject][ordered]@{
+        $csv += [PSCustomObject][ordered]@{
             OLD_OU_PATH = $OLD_OU_PATH
             OBJECT_CLASS= $OBJECT_CLASS
-            NEW_OU_PATHS = '"{0}"' -f ($NEW_OUS_PATHS -join '","')
+            NEW_OU_PATHS = '"{0}"' -f ($NEW_OUS_PATHS -join '"//"')
         }
     }
     $csv | Sort-Object -Property "OLD_OU_PATH" | Export-Csv -Path "$csv_path" -NoTypeInformation -Encoding UTF8 -Force
@@ -29,7 +30,7 @@ function Get-TieringMapCSV([String] $csv_path,
 
 # Get XPath from $node with regards to xml structure (xmlns inc.)
 function Get-XPathFromXMLNode([System.Xml.XmlNode]$node,
-                              [Int] $first_trigger=1,
+                              [Int]$first_trigger=1,
                               [String]$XPath = "/"
                               ){
     if( $node.ParentNode -ne $null ){
@@ -95,12 +96,12 @@ function Search-XmlSiblingNodes([System.Xml.XmlLinkedNode]$node,
 
 # Insert OU located in $old_ldap_path (relative to TLD) into XML file, at $node 
 function New-XMLNodes([String]$old_ou_ldap_path,
-                      [String] $object_class,
+                      [String]$object_class,
                       [System.Xml.XmlLinkedNode]$tiering_ou_xml_node,
                       [xml]$xml
                       ){
     $rootNodeName = $xml.FirstChild.NextSibling.LocalName
-    
+
     # Loop through OUs in reverse order (from parent to child)
     $old_ou_array = ($old_ou_ldap_path -split ",")
     $previous_ou_ldap_path = ""
@@ -133,7 +134,7 @@ function New-XMLNodes([String]$old_ou_ldap_path,
                 $new_xml_node.setAttribute("NAME",$ou_name) | Out-Null
                 $new_xml_node.setAttribute("Class",$object_class) | Out-Null
                 $insert_from_xml_node.AppendChild($new_xml_node) | Out-Null
-                $xml.save("Z:\AD-Tiering\lib\templates\Tiering-OU-populated.xml")
+                $xml.save($TIERING_OUTPUT_XML_PATH)
             }
 
             # Updates ref. to current sub_ou path for next iteration
@@ -169,4 +170,13 @@ function Search-XMLNodeByClass([String]$object_ldap_path,
             }     
         } 
     }                            
+}
+
+# Extract all unique classes from XML file
+function Get-ClassFromNode([System.Xml.XmlNode]$node
+                           ){
+    $class = $node.Class
+    if($class -ne $null -and !$class_map.ContainsKey($class)){
+        $class_map.Add($class,"")
+    }                   
 }

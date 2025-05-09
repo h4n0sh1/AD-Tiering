@@ -9,7 +9,7 @@
 [CmdletBinding()]
 param(
      [Parameter(Mandatory=$False)]
-     [String]$CSV_PATH = "..\data\AD-Tree-CONFIDENTIAL.csv",
+     [String]$CSV_PATH = "..\data\exports\AD-Tree-CONFIDENTIAL.csv",
      [Parameter(Mandatory=$False)]
      [String]$XML_PATH = "..\lib\templates\Tiering-OU.xml"
 )
@@ -17,15 +17,20 @@ param(
 Import-Module "..\lib\modules\LibXML.psm1" -Force
 
 $AD_Tree = Import-Csv -Path $CSV_PATH
-$NEW_XML_PATH = "..\lib\templates\Tiering-OU-populated.xml"
+$NEW_XML_PATH = "..\data\results\Tiering-OU-populated.xml"
 
+Copy-Item $XML_PATH -Destination $NEW_XML_PATH -Force
+[xml]$xml = Get-Content $NEW_XML_PATH
+$ROOT_NODE = $xml.STRUCTURE.FirstChild
+$GLOBAL:CLASS_MAP = @{}
 
 function Search-ADTreeFromCSV([System.Array]$csv,
-                              [ScriptBlock]$function){
-    Copy-Item $XML_PATH -Destination $NEW_XML_PATH -Force
-    [xml]$xml = Get-Content $NEW_XML_PATH
+                              [ScriptBlock]$function,
+                              [xml]$xml,
+                              [String]$xml_path=$NEW_XML_PATH){
+
     $csv | %{
-        if($ANALYSED_OBJECT_TYPES -contains $_.ObjectClass){
+        if($CLASS_MAP.Keys -contains $_.ObjectClass){
             if($_.DistinguishedName -match "(.*?),DC=.*"){
                 $object_path = $Matches[1]
                 $Matches.Clear()
@@ -36,5 +41,7 @@ function Search-ADTreeFromCSV([System.Array]$csv,
     }
 }
 
-Search-ADTreeFromCSV $AD_Tree ${function:\Search-XMLNodeByClass}
+
+Search-XmlAllNodes $ROOT_NODE ${function:\Get-ClassFromNode}
+Search-ADTreeFromCSV $AD_Tree ${function:\Search-XMLNodeByClass} $xml
 Get-TieringMapCSV "..\data\Tiering-Map.csv"
