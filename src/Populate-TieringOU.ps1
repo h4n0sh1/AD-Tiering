@@ -32,7 +32,8 @@ function Search-ADTreeFromCSV([System.Array]$csv,
                               [ScriptBlock]$function,
                               [xml]$xml,
                               [String]$xml_template_path = $XML_TEMPLATE_PATH,
-                              [String]$xml_output_path=$XML_OUTPUT_PATH){
+                              [String]$xml_output_path=$XML_OUTPUT_PATH
+                              ){
 
     $csv | %{
         if($CLASS_MAP.Keys -contains $_.ObjectClass){

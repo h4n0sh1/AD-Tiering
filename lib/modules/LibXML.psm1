@@ -176,8 +176,7 @@ function Search-XMLNodeByClass([String]$object_ldap_path,
 }
 
 # Adds XML node class attribute to the global class_map dict.
-function Get-ClassFromNode([System.Xml.XmlNode]$node
-                           ){
+function Get-ClassFromNode([System.Xml.XmlNode]$node){
     $class = $node.Class
     if($class -ne $null -and !$class_map.ContainsKey($class)){
         $class_map.Add($class,"")
