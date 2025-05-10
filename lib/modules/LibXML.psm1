@@ -169,7 +169,9 @@ function Search-XMLNodeByClass([String]$object_ldap_path,
 
         if(!$TIERING_MAP.ContainsKey($old_ou_ldap_path+"::$object_class")){
             $tiering_ou_xml_nodes | %{
-                Invoke-Command $function -ArgumentList $old_ou_ldap_path, $object_class, $_.Node, $xml, $xml_output_path
+                if(!(($_.Node.Tier -ne "0") -and ($old_ou_ldap_path -match "Domain Controllers"))){
+                    Invoke-Command $function -ArgumentList $old_ou_ldap_path, $object_class, $_.Node, $xml, $xml_output_path
+                }    
             }     
         } 
     }                            
