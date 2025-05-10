@@ -24,7 +24,7 @@ These tools have been developped with minimal impact in mind, as we do measure t
 
 | Script              | Purpose                                   | Recommended Environment |
 | --------------------| ------------------------------------------|-------------------------| 
-| Exports-ADTree.ps1  | Exports all AD Tree objects in CSV format | RSAT, RODC              |
+| Export-ADTree.ps1  | Exports all AD Tree objects in CSV format | RSAT, RODC              |
 | Export-GPOLinks.ps1 | Exports all GPO Links in CSV format       | RSAT, RODC              |
 | Copy-ADTree.ps1     | Replicates AD Tree objects from CSV file  | Virtual Machine / Test  |
 | New-TieringOU.ps1   | Creates Tiering OUs based on XML template | Virtual Machine / Test  |
