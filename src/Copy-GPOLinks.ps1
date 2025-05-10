@@ -7,6 +7,8 @@
 
 Import-Module "..\lib\modules\LibCSV.psm1" -Force
 
+$BASE_DN = (Get-ADDomain).DistinguishedName
+
 $GpoLinks_Path = "$PSScriptRoot\..\data\exports\GPO_Links.csv"
 $TieringMap_Path = "$PSScriptRoot\..\data\results\Tiering-Map.csv"
 
@@ -17,7 +19,7 @@ $GPO_Links | %{
     $gpo_name = $_.DisplayName
     if($_.Target -match "(.*?),(DC=.*)"){
         $old_ldap_relative_path = $Matches[1]
-        $dc_ldap_path = $Matches[2]
+        $dc_ldap_path = $BASE_DN
         if($Tiering_map.ContainsKey($old_ldap_relative_path)){
             $Tiering_map[$old_ldap_relative_path] -split "//" | %{
                 $new_ou_ldap_path = $($_ -replace '"') + "," + $dc_ldap_path

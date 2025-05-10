@@ -35,23 +35,23 @@ function Search-ADTreeFromCSV([System.Array]$csv
             {
                 organizationalUnit
                 { 
-                    New-ADOrganizationalUnitRecursive $new_object_path
+                    #Remove-ADOrganizationalUnitRecursive $new_object_path
                 }
                 user
                 {
-                    #New-ADUserRecursive $new_object_path 
+                    #Remove-ADUserSilently $new_object_path 
                 }
                 computer
                 {
-                    #New-ADComputerRecursive $new_object_path
+                    #Remove-ADComputerSilently $new_object_path
                 }
                 group
                 {
-                    #New-ADGroupRecursive $new_object_path
+                    #Remove-ADGroupSilently $new_object_path
                 }
                 msDS-GroupManagedServiceAccount
                 {
-                    #New-ADServiceAccount $new_object_path
+                    #Remove-ADServiceSilently $new_object_path
                 }
 
             }
