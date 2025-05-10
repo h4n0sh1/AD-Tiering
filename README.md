@@ -8,7 +8,7 @@
 
 ## Introduction
 
-This repo means to provide minimalistic yet efficient utilities to help security teams save time in their journey of securin existing Active Directory infrastructures.<br>
+This repo means to provide minimalistic yet efficient utilities to help security teams save time in their journey of hardening existing Active Directory infrastructures.<br>
 The philosophy is to make as few assumptions as possible about the way each organization wants to implement it's tiering architecture, hence the choice of an XML based declaration. 
 
 ## Features 
