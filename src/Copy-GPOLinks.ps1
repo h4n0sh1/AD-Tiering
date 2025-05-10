@@ -23,7 +23,13 @@ $GPO_Links | %{
         if($Tiering_map.ContainsKey($old_ldap_relative_path)){
             $Tiering_map[$old_ldap_relative_path] -split "//" | %{
                 $new_ou_ldap_path = $($_ -replace '"') + "," + $dc_ldap_path
-                New-GPLink -Name $gpo_name -Target $new_ou_ldap_path
+                try{
+                    New-GPLink -Name $gpo_name -Target $new_ou_ldap_path -ErrorAction Stop | Out-Null
+                    Write-Host -BackgroundColor Green -ForegroundColor White "Successfully linked $gpo_name to $new_ou_ldap_path"
+                }catch {
+                    Write-Host -BackgroundColor Yellow -ForegroundColor Black "The GPO $gpo_name is already linked to $new_ou_ldap_path"
+                }
+                
             }          
         }
     }
