@@ -20,7 +20,7 @@ The philosophy is to make as few assumptions as possible about the way each orga
 
 ## Usage 
 
-These tools have been developped with minimal impact in mind, as we do measure the intrisical risk associated with these highly sensitive environments. This means that a typical workflow would encapsulate the following : 
+These tools have been developped with minimal impact in mind, as we do measure the intrisic risk associated with these highly sensitive environments. This means that a typical workflow would encapsulate the following : 
 
 | Script              | Purpose                                   | Recommended Environment |
 | --------------------| ------------------------------------------|-------------------------| 
