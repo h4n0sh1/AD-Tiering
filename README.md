@@ -8,7 +8,7 @@
 
 ## Introduction
 
-This repo means to provide minimalistic yet efficient utilities to help security teams save time in their journey of securing existing Active Directory infrastructures.
+This repo means to provide minimalistic yet efficient utilities to help security teams save time in their journey of securin existing Active Directory infrastructures.<br>
 The philosophy is to make as few assumptions as possible about the way each organization wants to implement it's tiering architecture, hence the choice of an XML based declaration. 
 
 ## Features 
@@ -17,3 +17,21 @@ The philosophy is to make as few assumptions as possible about the way each orga
 - Creating new Tiering Organizational Unit from an XML file declaration
 - Replicating Active Directory Tree structure under the newly created Tiering Organizational Unit
 - Linking existing GPO
+
+## Usage 
+
+These tools have been developped with minimal impact in mind, as we do measure the intrisical risk associated with these highly sensitive environments. This means that a typical workflow would encapsulate the following : 
+
+| Script              | Purpose                                   | Recommended Environment |
+| --------------------| ------------------------------------------|-------------------------| 
+| Exports-ADTree.ps1  | Exports all AD Tree objects in CSV format | RSAT, RODC              |
+| Export-GPOLinks.ps1 | Exports all GPO Links in CSV format       | RSAT, RODC              |
+| Copy-ADTree.ps1     | Replicates AD Tree objects from CSV file  | Virtual Machine / Test  |
+| New-TieringOU.ps1   | Creates Tiering OUs based on XML template | Virtual Machine / Test  |
+| Populate-TieringOU.ps1 | Replicates AD Ous under Tiering OUs    | Virtual Machine / Test  |
+| Copy-GPOLinks.ps1   | Replicates GPO Links under Tiering OUs    | Virtual Machine / Test  |
+
+## Requirements
+
+None aside from a running version of Windows Server 2019+. <br>
+Further tests required to assess backwards compatibility. 
