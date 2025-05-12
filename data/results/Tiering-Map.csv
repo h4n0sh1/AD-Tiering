@@ -1,0 +1,3 @@
+﻿OLD_OU_PATH,OBJECT_CLASS,NEW_OU_PATHS
+"OU=OLD,OU=OU,OU=RelativePath",user,"""OU=OLD,OU=OU,OU=RelativePath,OU=T2-Users,OU=_TIER-2"""
+"OU=Example,OU=NumberTwo",group,"""OU=Example,OU=NumberTwo,OU=T2-Groups,OU=_TIER-2"""
