@@ -3,7 +3,6 @@
 [![GitHub release](https://img.shields.io/github/release/h4n0sh1/ad-tiering.svg)](https://github.com/h4n0sh1/AD-Tiering)
 [![PSAnalyzer](https://github.com/h4n0sh1/ad-tiering/actions/workflows/powershell.yml/badge.svg?branch=main&event=push)](https://github.com/h4n0sh1/ad-tiering/actions/workflows/powershell.yml)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/w/h4n0sh1/ad-tiering)
-[![Github Downloads](https://img.shields.io/github/downloads/h4n0sh1/ad-tiering/total)](https://github.com/h4n0sh1/AD-Tiering)
 [![License](https://img.shields.io/github/license/h4n0sh1/ad-tiering.svg)](https://github.com/h4n0sh1/ad-tiering/blob/master/LICENSE)
 
 ## Introduction
